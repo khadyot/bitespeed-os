@@ -1,34 +1,37 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700&display=swap');
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  --background: #0f1115;
+  --surface-base: #17191f;
+  --surface-elevated: #20232a;
+  --surface-glass: rgba(32, 35, 42, 0.6);
+  --border-color: rgba(255, 255, 255, 0.08);
+  
+  --text-primary: #f2f4f7;
+  --text-secondary: #98a2b3;
+  --text-tertiary: #667085;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+  --accent-primary: #6366f1;
+  --accent-primary-hover: #4f46e5;
+  --accent-secondary: #10b981;
+  
+  --status-green: #10b981;
+  --status-green-bg: rgba(16, 185, 129, 0.1);
+  --status-amber: #f59e0b;
+  --status-amber-bg: rgba(245, 158, 11, 0.1);
+  --status-red: #ef4444;
+  --status-red-bg: rgba(239, 68, 68, 0.1);
 
-html {
-  height: 100%;
-}
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display: 'Outfit', var(--font-sans);
 
-html,
-body {
-  max-width: 100vw;
-  overflow-x: hidden;
-}
-
-body {
-  min-height: 100%;
-  display: flex;
-  flex-direction: column;
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+  
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.25s ease;
 }
 
 * {
@@ -37,13 +40,219 @@ body {
   margin: 0;
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
+body {
+  background-color: var(--background);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
 }
 
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+a {
+  color: var(--accent-primary);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+a:hover {
+  color: var(--accent-primary-hover);
+}
+
+button {
+  cursor: pointer;
+  font-family: inherit;
+  border: none;
+  background: none;
+}
+
+/* Glass panel utility */
+.glass-panel {
+  background: var(--surface-glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-glass);
+}
+
+.card {
+  background: var(--surface-base);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-glass);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.btn-primary {
+  background: var(--accent-primary);
+  color: white;
+  padding: 0.6rem 1.2rem;
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  transition: background var(--transition-fast), transform var(--transition-fast);
+}
+
+.btn-primary:hover {
+  background: var(--accent-primary-hover);
+  transform: scale(1.02);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.badge.green {
+  background: var(--status-green-bg);
+  color: var(--status-green);
+}
+
+.badge.amber {
+  background: var(--status-amber-bg);
+  color: var(--status-amber);
+}
+
+.badge.red {
+  background: var(--status-red-bg);
+  color: var(--status-red);
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.5rem 0;
+  margin-bottom: 2rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.header-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.data-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.5rem;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.form-input, .form-select {
+  width: 100%;
+  background: var(--surface-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.6rem;
+  color: var(--text-primary);
+  font-family: inherit;
+  transition: border-color var(--transition-fast);
+}
+
+.form-input:focus, .form-select:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+}
+
+.page-transition-enter {
+  opacity: 0;
+  transform: translateY(10px);
+  animation: fadeUp var(--transition-normal) forwards;
+}
+
+@keyframes fadeUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem;
+  }
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  .header > div:last-child {
+    flex-wrap: wrap;
+  }
+  div[style*="display: grid"] {
+    grid-template-columns: 1fr !important;
+  }
+  .data-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .card[style*="grid-template-columns: 40px 1fr 200px 120px"] {
+    grid-template-columns: 1fr !important;
+    text-align: left;
+    gap: 0.5rem;
+  }
+  .card[style*="grid-template-columns: 40px 1fr 200px 120px"] > div {
+    text-align: left !important;
+  }
+  table, thead, tbody, th, td, tr { 
+    display: block; 
+  }
+  thead tr { 
+    position: absolute;
+    top: -9999px;
+    left: -9999px;
+  }
+  tr { border-bottom: 1px solid var(--border-color); margin-bottom: 1rem; }
+  td { 
+    border: none;
+    position: relative;
+    padding-left: 50% !important; 
+    text-align: right !important;
+  }
+  td:before { 
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    width: 45%; 
+    padding-right: 10px; 
+    white-space: nowrap;
+    text-align: left;
+    font-weight: 500;
+    color: var(--text-tertiary);
+  }
+  /* Optional: we can skip table data attributes for this quick CSS */
 }

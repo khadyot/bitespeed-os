@@ -1,0 +1,95 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id    String @id @default(cuid())
+  name  String
+  role  String // om, specialist, backstop, account_manager, customer
+  email String @unique
+
+  // Relations
+  accountsAsOM         Account[] @relation("OMToAccount")
+  accountsAsSpecialist Account[] @relation("SpecialistToAccount")
+  accountsAsAM         Account[] @relation("AMToAccount")
+  updateLogs           UpdateLog[]
+  escalationsAcknowledged EscalationEvent[] @relation("AcknowledgedBy")
+}
+
+model Account {
+  id                String @id @default(cuid())
+  brand_name        String
+  plan_stack        String // Omnichannel | Omnichannel + AI | Marketing Only | Support Only
+  segment           String // Enterprise | Mid Market | SMB
+  initial_plan_value_inr Float
+  trial_start_date  DateTime
+  conversion_status String // Not Converted | Likely | At Risk | Converted | Lost | Stalled
+  revenue_generated_during_trial_inr Float @default(0)
+  orders_attributed_during_trial     Int @default(0)
+  last_customer_update_date DateTime?
+
+  // Relations
+  om_id             String?
+  om                User?  @relation("OMToAccount", fields: [om_id], references: [id])
+  specialist_id     String?
+  specialist        User?  @relation("SpecialistToAccount", fields: [specialist_id], references: [id])
+  account_manager_id String?
+  account_manager   User?  @relation("AMToAccount", fields: [account_manager_id], references: [id])
+
+  tracks            Track[]
+  updateLogs        UpdateLog[]
+  escalations       EscalationEvent[]
+  notifications     Notification[]
+}
+
+model Track {
+  id              String @id @default(cuid())
+  account_id      String
+  account         Account @relation(fields: [account_id], references: [id], onDelete: Cascade)
+  type            String // dns | migration | chatbot | warmup | general
+  status          String // not_started | active | blocked | complete | not_applicable
+  owner_type      String // Customer | Specialist | Partner | BiteSpeed
+  due_day         Int
+  last_updated_at DateTime @default(now())
+  updated_by_user_id String?
+}
+
+model UpdateLog {
+  id              String @id @default(cuid())
+  account_id      String
+  account         Account @relation(fields: [account_id], references: [id], onDelete: Cascade)
+  author_user_id  String?
+  author          User?   @relation(fields: [author_user_id], references: [id])
+  text            String
+  type            String // customer_update | blocker_flagged | track_change | escalation_note
+  created_at      DateTime @default(now())
+}
+
+model EscalationEvent {
+  id                String @id @default(cuid())
+  account_id        String
+  account           Account @relation(fields: [account_id], references: [id], onDelete: Cascade)
+  tier              Int // 1 | 2 | 3
+  reason            String
+  blocker_type      String // customer | bitespeed | partner
+  opened_at         DateTime @default(now())
+  acknowledged_at   DateTime?
+  resolved_at       DateTime?
+  acknowledged_by_user_id String?
+  acknowledged_by   User?   @relation("AcknowledgedBy", fields: [acknowledged_by_user_id], references: [id])
+}
+
+model Notification {
+  id              String @id @default(cuid())
+  account_id      String
+  account         Account @relation(fields: [account_id], references: [id], onDelete: Cascade)
+  recipient       String
+  message_text    String
+  triggered_at    DateTime @default(now())
+  channel         String // whatsapp
+}
