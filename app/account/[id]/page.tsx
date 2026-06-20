@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/db';
 import { computeStage, computeSlaStatus, computePriorityScore, computeRiskScore, computeEscalationTier, getTrialDay } from '@/lib/coreLogic';
-import { logUpdate, flagBlocker, updateTrackStatus, updateAccountFields } from '@/app/actions';
+import { logUpdate, flagBlocker, updateTrackStatus, updateAccountFields, handoffToAM } from '@/app/actions';
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
@@ -33,6 +33,8 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
     }
   });
 
+  const ams = await prisma.user.findMany({ where: { role: 'account_manager' } });
+
   if (!account) return <div className="container"><h1>Account not found</h1></div>;
 
   const stage = computeStage(account.conversion_status, account.trial_start_date, account.initial_plan_value_inr);
@@ -56,7 +58,17 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
     .find(t => t && t.status !== 'complete' && t.status !== 'not_applicable');
 
   // Unique key forces React to re-mount forms after server action updates
-  const formKey = `${account.conversion_status}-${account.revenue_generated_during_trial_inr}-${account.orders_attributed_during_trial}-${Date.now()}`;
+  const formKey = `${account.conversion_status}-${account.revenue_generated_during_trial_inr}-${account.orders_attributed_during_trial}-${account.phone_number}-${account.account_manager_id}-${Date.now()}`;
+
+  let nudgeMessage = `Hi ${account.brand_name} team,\n\nChecking in on your BiteSpeed onboarding. `;
+  if (nextMilestone && nextMilestone.owner_type === 'Customer') {
+    nudgeMessage += `It looks like we are waiting on you to complete the ${nextMilestone.type} step. Please let us know if you need any help!\n\n`;
+  } else if (daysSinceUpdate !== null && daysSinceUpdate >= 3) {
+    nudgeMessage += `We haven't heard from you in a few days. Is everything going smoothly?\n\n`;
+  } else {
+    nudgeMessage += `Just keeping you in the loop that things are progressing well on our end.\n\n`;
+  }
+  nudgeMessage += `Thanks,\n${account.om?.name || 'Your BiteSpeed Team'}`;
 
   return (
     <div className="container page-transition-enter">
@@ -144,13 +156,19 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
                   <input type="number" name="initial_plan_value_inr" defaultValue={account.initial_plan_value_inr} className="form-input" />
                 </div>
               </div>
-              <div style={{ marginBottom: '1rem' }}>
-                <label className="form-label">Segment</label>
-                <select name="segment" defaultValue={account.segment} className="form-select">
-                  <option value="Enterprise">Enterprise</option>
-                  <option value="Mid Market">Mid Market</option>
-                  <option value="SMB">SMB</option>
-                </select>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                <div>
+                  <label className="form-label">Segment</label>
+                  <select name="segment" defaultValue={account.segment} className="form-select">
+                    <option value="Enterprise">Enterprise</option>
+                    <option value="Mid Market">Mid Market</option>
+                    <option value="SMB">SMB</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="form-label">Phone Number (WhatsApp)</label>
+                  <input type="text" name="phone_number" defaultValue={account.phone_number || ''} className="form-input" placeholder="+1234567890" />
+                </div>
               </div>
               <button type="submit" className="btn-primary" style={{ width: '100%' }}>Save Account Changes</button>
             </form>
@@ -200,6 +218,26 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
             })}
           </div>
 
+          {/* AM Handoff Panel */}
+          {account.conversion_status === 'Converted' && account.revenue_generated_during_trial_inr >= 50000 && !account.account_manager_id && (
+            <div className="card" style={{ marginBottom: '1.5rem', borderLeft: '4px solid var(--accent-secondary)', background: 'rgba(139, 92, 246, 0.05)' }}>
+              <h3 style={{ marginBottom: '0.75rem', fontSize: '1rem', color: 'var(--accent-secondary)' }}>🤝 Formal AM Handoff Ready <span style={{fontSize: '0.75rem', fontWeight: 'normal', color: 'var(--text-tertiary)', fontStyle: 'italic'}}>(₹50k Placeholder pending confirmation)</span></h3>
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-primary)', marginBottom: '1rem' }}>This account has converted and reached the provisional ₹50,000 threshold. It is ready for formal handoff to an Account Manager.</p>
+              <form action={async (formData) => {
+                'use server';
+                const amId = formData.get('am_id') as string;
+                await handoffToAM(account.id, amId);
+              }}>
+                <select name="am_id" className="form-select" style={{ marginBottom: '1rem' }} required>
+                  {ams.map(am => (
+                    <option key={am.id} value={am.id}>{am.name}</option>
+                  ))}
+                </select>
+                <button type="submit" className="btn-primary" style={{ width: '100%', background: 'var(--accent-secondary)', color: 'white' }}>Transfer Ownership to AM</button>
+              </form>
+            </div>
+          )}
+
           {/* Action Panel */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div className="card">
@@ -224,6 +262,29 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
                 <textarea name="reason" className="form-input" rows={2} placeholder="Reason for blocker..." required style={{ marginBottom: '0.75rem' }} />
                 <button type="submit" className="btn-primary" style={{ width: '100%', background: 'var(--status-red)' }}>Escalate</button>
               </form>
+            </div>
+
+            {/* WhatsApp Nudge Panel */}
+            <div className="card" style={{ gridColumn: '1 / -1', borderLeft: '4px solid #25D366' }}>
+              <h3 style={{ marginBottom: '0.75rem', fontSize: '1rem', color: '#25D366' }}>📱 Generate WhatsApp Nudge</h3>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', marginBottom: '1rem' }}>Auto-draft a contextual message to the customer.</p>
+              {account.phone_number ? (
+                <a 
+                  href={`whatsapp://send?phone=${account.phone_number.replace(/\D/g, '')}&text=${encodeURIComponent(nudgeMessage)}`} 
+                  className="btn-primary" 
+                  style={{ background: '#25D366', color: '#fff', textDecoration: 'none', display: 'flex', justifyContent: 'center', alignItems: 'center' }} 
+                  target="_blank" 
+                  rel="noreferrer"
+                  onClick={(e) => {
+                    // We don't prevent default, we want it to open WhatsApp.
+                    // But we could trigger an optimistic update or log.
+                  }}
+                >
+                  Open WhatsApp Nudge
+                </a>
+              ) : (
+                <p style={{ color: 'var(--status-red)', fontSize: '0.85rem' }}>No phone number on file. Update Account Details above.</p>
+              )}
             </div>
           </div>
         </div>

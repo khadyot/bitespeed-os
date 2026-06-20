@@ -1,12 +1,12 @@
 import { prisma } from '@/lib/db';
 import { computeStage, computeSlaStatus, computePriorityScore, computeRiskScore, computeEscalationTier } from '@/lib/coreLogic';
 import Link from 'next/link';
-import { acknowledgeEscalation, resolveEscalation } from '@/app/actions';
+import { acknowledgeEscalation, resolveEscalation, runEscalationEngine } from '@/app/actions';
 
 export const dynamic = 'force-dynamic';
 
 export default async function BackstopDashboard() {
-  const reviewerEmail = 'reviewer@bitespeed.co';
+  const reviewerEmail = 'head@bitespeed.co';
   const user = await prisma.user.findUnique({ where: { email: reviewerEmail } });
   if (!user) return <div className="container"><h1>Reviewer not found</h1></div>;
 
@@ -56,6 +56,9 @@ export default async function BackstopDashboard() {
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Global escalation and risk monitor</p>
         </div>
         <div style={{ display: 'flex', gap: '0.75rem' }}>
+          <form action={runEscalationEngine}>
+            <button type="submit" className="btn-primary" style={{ background: 'var(--accent-primary)', color: 'white' }}>⚡ Run Escalation Engine</button>
+          </form>
           <Link href="/review" className="btn-primary" style={{ background: 'var(--surface-elevated)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}>Weekly Review</Link>
           <Link href="/" className="btn-primary" style={{ background: 'var(--surface-elevated)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}>Switch Role</Link>
         </div>

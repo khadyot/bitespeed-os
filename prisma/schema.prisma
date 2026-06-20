@@ -24,6 +24,7 @@ model User {
 model Account {
   id                String @id @default(cuid())
   brand_name        String
+  phone_number      String?
   plan_stack        String // Omnichannel | Omnichannel + AI | Marketing Only | Support Only
   segment           String // Enterprise | Mid Market | SMB
   initial_plan_value_inr Float

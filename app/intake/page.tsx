@@ -53,9 +53,15 @@ export default async function IntakeForm() {
 
       <div className="card">
         <form action={createAccount} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          <div>
-            <label className="form-label">Brand Name</label>
-            <input type="text" name="brand_name" className="form-input" required />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div>
+              <label className="form-label">Brand Name</label>
+              <input type="text" name="brand_name" className="form-input" required />
+            </div>
+            <div>
+              <label className="form-label">Customer Phone Number (WhatsApp)</label>
+              <input type="text" name="phone_number" className="form-input" placeholder="+1234567890" />
+            </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>

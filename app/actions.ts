@@ -2,6 +2,7 @@
 
 import { prisma } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
+import { computeStage } from '@/lib/coreLogic';
 
 export async function askQuestion(accountId: string, formData: FormData) {
   const question = formData.get('question') as string;
@@ -20,7 +21,7 @@ export async function askQuestion(accountId: string, formData: FormData) {
     data: { last_customer_update_date: new Date() }
   });
 
-  revalidatePath(`/portal/${accountId}`);
+  revalidatePath('/', 'layout');
 }
 
 export async function updateTrackStatus(trackId: string, accountId: string, formData: FormData) {
@@ -45,7 +46,7 @@ export async function updateTrackStatus(trackId: string, accountId: string, form
     }
   });
   
-  revalidatePath(`/account/${accountId}`);
+  revalidatePath('/', 'layout');
 }
 
 export async function updateAccountFields(accountId: string, formData: FormData) {
@@ -55,6 +56,7 @@ export async function updateAccountFields(accountId: string, formData: FormData)
   const segment = formData.get('segment') as string;
   const plan_stack = formData.get('plan_stack') as string;
   const initial_plan_value_inr = parseFloat(formData.get('initial_plan_value_inr') as string) || 0;
+  const phone_number = formData.get('phone_number') as string;
 
   const changes: string[] = [];
   const existing = await prisma.account.findUnique({ where: { id: accountId } });
@@ -62,6 +64,7 @@ export async function updateAccountFields(accountId: string, formData: FormData)
     if (existing.conversion_status !== conversion_status) changes.push(`Status: ${existing.conversion_status} → ${conversion_status}`);
     if (existing.revenue_generated_during_trial_inr !== revenue) changes.push(`Revenue: ₹${existing.revenue_generated_during_trial_inr} → ₹${revenue}`);
     if (existing.orders_attributed_during_trial !== orders) changes.push(`Orders: ${existing.orders_attributed_during_trial} → ${orders}`);
+    if (existing.phone_number !== phone_number) changes.push(`Phone: ${existing.phone_number || 'none'} → ${phone_number || 'none'}`);
   }
 
   await prisma.account.update({
@@ -73,8 +76,32 @@ export async function updateAccountFields(accountId: string, formData: FormData)
       segment,
       plan_stack,
       initial_plan_value_inr,
+      phone_number,
     }
   });
+
+  if (existing && existing.plan_stack !== plan_stack) {
+    if (plan_stack === 'Support Only') {
+      await prisma.track.updateMany({
+        where: { account_id: accountId },
+        data: { status: 'not_applicable' }
+      });
+    } else if (plan_stack === 'Omnichannel') {
+      await prisma.track.updateMany({
+        where: { account_id: accountId, type: { in: ['dns', 'migration', 'warmup'] }, status: 'not_applicable' },
+        data: { status: 'not_started' }
+      });
+      await prisma.track.updateMany({
+        where: { account_id: accountId, type: 'chatbot' },
+        data: { status: 'not_applicable' }
+      });
+    } else if (plan_stack === 'Omnichannel + AI') {
+      await prisma.track.updateMany({
+        where: { account_id: accountId, type: { in: ['dns', 'migration', 'warmup', 'chatbot'] }, status: 'not_applicable' },
+        data: { status: 'not_started' }
+      });
+    }
+  }
 
   if (changes.length > 0) {
     await prisma.updateLog.create({
@@ -86,7 +113,7 @@ export async function updateAccountFields(accountId: string, formData: FormData)
     });
   }
 
-  revalidatePath(`/account/${accountId}`);
+  revalidatePath('/', 'layout');
 }
 
 export async function flagBlocker(accountId: string, authorId: string, formData: FormData) {
@@ -111,7 +138,7 @@ export async function flagBlocker(accountId: string, authorId: string, formData:
     }
   });
 
-  revalidatePath(`/account/${accountId}`);
+  revalidatePath('/', 'layout');
 }
 
 export async function logUpdate(accountId: string, authorId: string, formData: FormData) {
@@ -135,7 +162,7 @@ export async function logUpdate(accountId: string, authorId: string, formData: F
     });
   }
 
-  revalidatePath(`/account/${accountId}`);
+  revalidatePath('/', 'layout');
 }
 
 export async function createAccount(formData: FormData) {
@@ -157,6 +184,7 @@ export async function createAccount(formData: FormData) {
       conversion_status: 'Not Converted',
       om_id,
       specialist_id: specialist?.id,
+      phone_number: formData.get('phone_number') as string,
     }
   });
 
@@ -189,7 +217,7 @@ export async function createAccount(formData: FormData) {
     });
   }
 
-  revalidatePath('/om');
+  revalidatePath('/', 'layout');
 }
 
 export async function acknowledgeEscalation(escalationId: string, userId: string) {
@@ -200,7 +228,7 @@ export async function acknowledgeEscalation(escalationId: string, userId: string
       acknowledged_by_user_id: userId
     }
   });
-  revalidatePath('/backstop');
+  revalidatePath('/', 'layout');
 }
 
 export async function resolveEscalation(escalationId: string) {
@@ -208,5 +236,91 @@ export async function resolveEscalation(escalationId: string) {
     where: { id: escalationId },
     data: { resolved_at: new Date() }
   });
-  revalidatePath('/backstop');
+  revalidatePath('/', 'layout');
+}
+
+export async function handoffToAM(accountId: string, amId: string) {
+  await prisma.account.update({
+    where: { id: accountId },
+    data: { account_manager_id: amId }
+  });
+  await prisma.updateLog.create({
+    data: {
+      account_id: accountId,
+      text: `Account handed off to Account Manager.`,
+      type: 'track_change'
+    }
+  });
+  revalidatePath('/', 'layout');
+}
+
+export async function runEscalationEngine() {
+  const accounts = await prisma.account.findMany({
+    where: { conversion_status: { notIn: ['Lost', 'Stalled'] } },
+    include: { tracks: true, escalations: { where: { resolved_at: null } } }
+  });
+  
+  const now = new Date().getTime();
+  let createdCount = 0;
+
+  for (const acc of accounts) {
+    let escalationReason = null;
+    let blockerType = 'bitespeed';
+
+    const daysSinceUpdate = acc.last_customer_update_date ? Math.max(0, Math.floor((now - new Date(acc.last_customer_update_date).getTime()) / (1000 * 60 * 60 * 24))) : 0;
+    
+    const stage = computeStage(acc.conversion_status, acc.trial_start_date, acc.initial_plan_value_inr);
+    let commsThreshold = 7;
+    if (stage.includes('Trial') || stage.includes('Extended')) {
+      commsThreshold = 4;
+    } else if (stage.includes('OM/Sales')) {
+      commsThreshold = 7;
+    } else if (stage.includes('AM')) {
+      commsThreshold = 30;
+    }
+
+    // Check communication breach (stage-aware limit)
+    if (daysSinceUpdate >= commsThreshold) {
+      escalationReason = `No customer communication for ${daysSinceUpdate} days (Limit: ${commsThreshold} days).`;
+      blockerType = 'customer';
+    } else {
+      // Check track SLA breaches
+      for (const track of acc.tracks) {
+        if (track.status === 'complete' || track.status === 'not_applicable') continue;
+        const targetDate = new Date(acc.trial_start_date);
+        targetDate.setDate(targetDate.getDate() + track.due_day);
+        
+        if (now > targetDate.getTime()) {
+          escalationReason = `${track.type.toUpperCase()} track is overdue by ${Math.floor((now - targetDate.getTime()) / (1000 * 60 * 60 * 24))} days.`;
+          blockerType = track.owner_type.toLowerCase() === 'customer' ? 'customer' : track.owner_type.toLowerCase() === 'partner' ? 'partner' : 'bitespeed';
+          break; // Flag the first breached track we find
+        }
+      }
+    }
+
+    if (escalationReason) {
+      // Create if doesn't already have one
+      if (acc.escalations.length === 0) {
+        await prisma.escalationEvent.create({
+          data: {
+            account_id: acc.id,
+            tier: 2,
+            reason: `[AUTO-ESCALATION] ${escalationReason}`,
+            blocker_type: blockerType,
+          }
+        });
+        
+        await prisma.updateLog.create({
+          data: {
+            account_id: acc.id,
+            text: `System auto-flagged Escalation (Tier 2): ${escalationReason}`,
+            type: 'escalation_note'
+          }
+        });
+        createdCount++;
+      }
+    }
+  }
+  
+  revalidatePath('/', 'layout');
 }
