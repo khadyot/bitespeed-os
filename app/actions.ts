@@ -86,7 +86,7 @@ export async function updateAccountFields(accountId: string, formData: FormData)
         where: { account_id: accountId },
         data: { status: 'not_applicable' }
       });
-    } else if (plan_stack === 'Omnichannel') {
+    } else if (plan_stack === 'Omnichannel' || plan_stack === 'Marketing Only') {
       await prisma.track.updateMany({
         where: { account_id: accountId, type: { in: ['dns', 'migration', 'warmup'] }, status: 'not_applicable' },
         data: { status: 'not_started' }

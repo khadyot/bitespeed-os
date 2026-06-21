@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BiteSpeed Onboarding OS — Redesigned Operating System</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --surface-elevated: #1a1a2e;
+    --border: rgba(255,255,255,0.06);
+    --text-primary: #e8e8ed;
+    --text-secondary: #9ca3af;
+    --text-tertiary: #6b7280;
+    --accent-blue: #3b82f6;
+    --accent-purple: #8b5cf6;
+    --accent-green: #10b981;
+    --accent-amber: #f59e0b;
+    --accent-red: #ef4444;
+    --accent-pink: #ec4899;
+    --gradient-1: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    --gradient-2: linear-gradient(135deg, #10b981, #3b82f6);
+    --gradient-3: linear-gradient(135deg, #f59e0b, #ef4444);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text-primary);
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  .deck {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+  }
+
+  .slide {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 4rem 6rem;
+    opacity: 0;
+    transform: translateX(60px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+    pointer-events: none;
+  }
+
+  .slide.active {
+    opacity: 1;
+    transform: translateX(0);
+    pointer-events: all;
+  }
+
+  .slide.exiting {
+    opacity: 0;
+    transform: translateX(-60px);
+  }
+
+  /* Navigation */
+  .nav {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 0.5rem;
+    z-index: 100;
+    background: var(--surface-elevated);
+    padding: 0.5rem 1rem;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    backdrop-filter: blur(20px);
+  }
+
+  .nav-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--text-tertiary);
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+
+  .nav-dot.active {
+    background: var(--accent-blue);
+    box-shadow: 0 0 10px rgba(59,130,246,0.5);
+    transform: scale(1.3);
+  }
+
+  .slide-counter {
+    position: fixed;
+    bottom: 2rem;
+    right: 3rem;
+    font-size: 0.8rem;
+    color: var(--text-tertiary);
+    z-index: 100;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .key-hint {
+    position: fixed;
+    bottom: 2rem;
+    left: 3rem;
+    font-size: 0.7rem;
+    color: var(--text-tertiary);
+    z-index: 100;
+    opacity: 0.5;
+  }
+
+  /* Typography */
+  .slide-title {
+    font-size: 3rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    margin-bottom: 1rem;
+  }
+
+  .slide-subtitle {
+    font-size: 1.2rem;
+    color: var(--text-secondary);
+    font-weight: 400;
+    margin-bottom: 2.5rem;
+    max-width: 700px;
+    text-align: center;
+    line-height: 1.6;
+  }
+
+  .section-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--accent-blue);
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+  }
+
+  /* Cards Grid */
+  .cards-grid {
+    display: grid;
+    gap: 1rem;
+    width: 100%;
+    max-width: 1100px;
+  }
+
+  .cards-grid.cols-2 { grid-template-columns: 1fr 1fr; }
+  .cards-grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .cards-grid.cols-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.5rem;
+    transition: transform 0.3s, border-color 0.3s;
+  }
+
+  .card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255,255,255,0.12);
+  }
+
+  .card-icon {
+    font-size: 1.5rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .card-title {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 0.4rem;
+  }
+
+  .card-desc {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+
+  /* Timeline */
+  .timeline {
+    width: 100%;
+    max-width: 900px;
+  }
+
+  .timeline-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 1.25rem;
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .timeline-row:last-child { border-bottom: none; }
+
+  .timeline-day {
+    min-width: 70px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--accent-blue);
+    padding-top: 2px;
+  }
+
+  .timeline-content {
+    flex: 1;
+  }
+
+  .timeline-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin-bottom: 0.2rem;
+  }
+
+  .timeline-meta {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+  }
+
+  .timeline-owner {
+    display: inline-block;
+    font-size: 0.65rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .owner-customer { background: rgba(245,158,11,0.15); color: var(--accent-amber); }
+  .owner-bitespeed { background: rgba(59,130,246,0.15); color: var(--accent-blue); }
+  .owner-partner { background: rgba(139,92,246,0.15); color: var(--accent-purple); }
+
+  /* Table */
+  .data-table {
+    width: 100%;
+    max-width: 1000px;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+
+  .data-table th {
+    text-align: left;
+    padding: 0.75rem 1rem;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-tertiary);
+    font-weight: 500;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .data-table td {
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-secondary);
+  }
+
+  .data-table td:first-child { color: var(--text-primary); font-weight: 500; }
+
+  /* Score badge */
+  .badge {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 700;
+  }
+  .badge-red { background: rgba(239,68,68,0.15); color: var(--accent-red); }
+  .badge-amber { background: rgba(245,158,11,0.15); color: var(--accent-amber); }
+  .badge-green { background: rgba(16,185,129,0.15); color: var(--accent-green); }
+  .badge-blue { background: rgba(59,130,246,0.15); color: var(--accent-blue); }
+
+  /* Big stat */
+  .stat-row {
+    display: flex;
+    gap: 2.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .stat-block {
+    text-align: center;
+  }
+
+  .stat-number {
+    font-size: 3.5rem;
+    font-weight: 900;
+    letter-spacing: -0.04em;
+    background: var(--gradient-1);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .stat-label {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-top: 0.25rem;
+  }
+
+  /* Gradient text */
+  .gradient-text {
+    background: var(--gradient-1);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .gradient-text-green {
+    background: var(--gradient-2);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* Flow diagram */
+  .flow {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 1000px;
+  }
+
+  .flow-node {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 0.75rem 1.25rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    text-align: center;
+    min-width: 140px;
+  }
+
+  .flow-arrow {
+    font-size: 1.2rem;
+    color: var(--text-tertiary);
+  }
+
+  /* Full width content */
+  .full-content {
+    width: 100%;
+    max-width: 1100px;
+    text-align: left;
+  }
+
+  .full-content h2 {
+    font-size: 2rem;
+    font-weight: 800;
+    margin-bottom: 0.5rem;
+    letter-spacing: -0.02em;
+  }
+
+  .full-content .lead {
+    font-size: 1rem;
+    color: var(--text-secondary);
+    margin-bottom: 2rem;
+    max-width: 700px;
+    line-height: 1.6;
+  }
+
+  /* Escalation tiers */
+  .tier-row {
+    display: flex;
+    gap: 1.5rem;
+    width: 100%;
+    max-width: 1000px;
+  }
+
+  .tier-card {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.75rem;
+    border-top: 3px solid;
+  }
+
+  .tier-card.tier-trial { border-top-color: var(--accent-amber); }
+  .tier-card.tier-post { border-top-color: var(--accent-blue); }
+  .tier-card.tier-am { border-top-color: var(--accent-purple); }
+
+  .tier-number {
+    font-size: 2.5rem;
+    font-weight: 900;
+    margin-bottom: 0.25rem;
+  }
+
+  .tier-unit {
+    font-size: 0.8rem;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.75rem;
+  }
+
+  .tier-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 0.3rem;
+  }
+
+  .tier-desc {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+
+  /* Decorative */
+  .bg-glow {
+    position: absolute;
+    width: 400px;
+    height: 400px;
+    border-radius: 50%;
+    filter: blur(120px);
+    opacity: 0.15;
+    pointer-events: none;
+  }
+
+  .glow-blue { background: var(--accent-blue); top: -100px; right: -100px; }
+  .glow-purple { background: var(--accent-purple); bottom: -100px; left: -100px; }
+
+  /* Logo */
+  .logo {
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: var(--text-tertiary);
+    position: fixed;
+    top: 2rem;
+    left: 3rem;
+    z-index: 100;
+  }
+
+  .logo span { color: var(--accent-blue); }
+</style>
+</head>
+<body>
+
+<div class="logo">BITE<span>SPEED</span> OS</div>
+
+<div class="deck" id="deck">
+
+  <!-- SLIDE 1: Title -->
+  <div class="slide active" data-slide="0">
+    <div class="bg-glow glow-blue"></div>
+    <div class="bg-glow glow-purple"></div>
+    <p class="section-label">Part 3 — Redesigned Operating System</p>
+    <h1 class="slide-title" style="text-align:center;max-width:800px"><span class="gradient-text">Onboarding OS</span></h1>
+    <p class="slide-subtitle">A live, deployed platform that replaces static spreadsheets with an algorithmic operating system. One source of truth, read in different shapes by different roles.</p>
+    <div class="stat-row">
+      <div class="stat-block">
+        <div class="stat-number">8</div>
+        <div class="stat-label">Role-Based Dashboards</div>
+      </div>
+      <div class="stat-block">
+        <div class="stat-number">P1–P5</div>
+        <div class="stat-label">Algorithmic Priority</div>
+      </div>
+      <div class="stat-block">
+        <div class="stat-number">0</div>
+        <div class="stat-label">Manual Overhead Added</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 2: Table of Contents -->
+  <div class="slide" data-slide="1">
+    <div class="full-content">
+      <p class="section-label">Overview</p>
+      <h2>What's Inside</h2>
+      <p class="lead">The system is structured around nine design areas as specified in the assignment brief.</p>
+      <div class="cards-grid cols-3">
+        <div class="card"><div class="card-icon">🗺️</div><div class="card-title">Customer Journey</div><div class="card-desc">7-day trial with four parallel dependency tracks and a customer portal.</div></div>
+        <div class="card"><div class="card-icon">⚙️</div><div class="card-title">Internal Workflow</div><div class="card-desc">Role-specific dashboards for OM, Specialist, CS Head, and AM.</div></div>
+        <div class="card"><div class="card-icon">👥</div><div class="card-title">Ownership Model</div><div class="card-desc">Split-ownership: tracks owned by Customer, BiteSpeed, or Partner.</div></div>
+        <div class="card"><div class="card-icon">🔗</div><div class="card-title">Dependencies</div><div class="card-desc">Dynamic track generation based on plan type. No manual "N/A" columns.</div></div>
+        <div class="card"><div class="card-icon">🚨</div><div class="card-title">Escalation Rules</div><div class="card-desc">Stage-aware auto-escalation engine with Tier 2 ticket generation.</div></div>
+        <div class="card"><div class="card-icon">💬</div><div class="card-title">Comms Cadence</div><div class="card-desc">WhatsApp Nudge Generator turns follow-ups into one-click actions.</div></div>
+        <div class="card"><div class="card-icon">📊</div><div class="card-title">Daily / Weekly Review</div><div class="card-desc">Priority Queue for daily. Aggregated analytics for weekly.</div></div>
+        <div class="card"><div class="card-icon">📈</div><div class="card-title">Metrics Dashboard</div><div class="card-desc">13 account-level fields computed live. Zero manual data entry.</div></div>
+        <div class="card"><div class="card-icon">🚀</div><div class="card-title">Scalability</div><div class="card-desc">Zero marginal overhead per additional account.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 3: Customer Journey Timeline -->
+  <div class="slide" data-slide="2">
+    <div class="full-content">
+      <p class="section-label">1 — Customer-Facing Journey</p>
+      <h2>The 7-Day Trial Timeline</h2>
+      <p class="lead">Four parallel dependency tracks, not sequential phases. Each has a named owner and a hard due date.</p>
+      <div class="timeline">
+        <div class="timeline-row">
+          <div class="timeline-day">Day 0</div>
+          <div class="timeline-content">
+            <div class="timeline-title">Trial Kickoff Call</div>
+            <div class="timeline-meta"><span class="timeline-owner owner-bitespeed">BiteSpeed OM</span></div>
+          </div>
+        </div>
+        <div class="timeline-row">
+          <div class="timeline-day">Day 1–3</div>
+          <div class="timeline-content">
+            <div class="timeline-title">DNS / Email Verification</div>
+            <div class="timeline-meta"><span class="timeline-owner owner-customer">Customer</span> — Must add DNS records to their domain provider</div>
+          </div>
+        </div>
+        <div class="timeline-row">
+          <div class="timeline-day">Day 1–5</div>
+          <div class="timeline-content">
+            <div class="timeline-title">Platform Migration & Audit</div>
+            <div class="timeline-meta"><span class="timeline-owner owner-bitespeed">BiteSpeed Specialist</span> — Data migration from previous tool</div>
+          </div>
+        </div>
+        <div class="timeline-row">
+          <div class="timeline-day">Day 1–4</div>
+          <div class="timeline-content">
+            <div class="timeline-title">Campaign Warmup Plan</div>
+            <div class="timeline-meta"><span class="timeline-owner owner-bitespeed">BiteSpeed Specialist</span></div>
+          </div>
+        </div>
+        <div class="timeline-row">
+          <div class="timeline-day">Day 1–6</div>
+          <div class="timeline-content">
+            <div class="timeline-title">Chatbot Configuration <span class="badge badge-blue">If Omni+AI</span></div>
+            <div class="timeline-meta"><span class="timeline-owner owner-partner">External Partner</span></div>
+          </div>
+        </div>
+        <div class="timeline-row">
+          <div class="timeline-day">Day 7</div>
+          <div class="timeline-content">
+            <div class="timeline-title">Trial Review & Conversion Decision</div>
+            <div class="timeline-meta"><span class="timeline-owner owner-bitespeed">OM + Sales</span> — Joint review of trial performance</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 4: Role Dashboards -->
+  <div class="slide" data-slide="3">
+    <div class="full-content">
+      <p class="section-label">2 — Internal Workflow</p>
+      <h2>One Database, Many Views</h2>
+      <p class="lead">Every team reads from the same live database. Data is never copied or duplicated.</p>
+      <div class="cards-grid cols-4">
+        <div class="card" style="border-left:3px solid var(--accent-blue)">
+          <div class="card-icon">📥</div>
+          <div class="card-title">Intake Engine</div>
+          <div class="card-desc">Sales submits accounts. System auto-recommends safest OM based on load + risk.</div>
+        </div>
+        <div class="card" style="border-left:3px solid var(--accent-green)">
+          <div class="card-icon">🎯</div>
+          <div class="card-title">OM Dashboard</div>
+          <div class="card-desc">Priority-ranked queue (P1–P5). OM works top to bottom, zero guesswork.</div>
+        </div>
+        <div class="card" style="border-left:3px solid var(--accent-purple)">
+          <div class="card-icon">🛠️</div>
+          <div class="card-title">Specialist View</div>
+          <div class="card-desc">Cross-account technical tasks. Sees tracks, not accounts.</div>
+        </div>
+        <div class="card" style="border-left:3px solid var(--accent-red)">
+          <div class="card-icon">🚨</div>
+          <div class="card-title">Backstop Board</div>
+          <div class="card-desc">Exception-only. Empty = Inbox Zero. CS Head intervenes only when needed.</div>
+        </div>
+        <div class="card" style="border-left:3px solid var(--accent-amber)">
+          <div class="card-icon">🤝</div>
+          <div class="card-title">AM Dashboard</div>
+          <div class="card-desc">Post-conversion portfolio. Formal handoff after ₹50k threshold.</div>
+        </div>
+        <div class="card" style="border-left:3px solid var(--accent-pink)">
+          <div class="card-icon">📊</div>
+          <div class="card-title">Weekly Review</div>
+          <div class="card-desc">Aggregated analytics by Plan Type and by OM. Anomaly detection built in.</div>
+        </div>
+        <div class="card" style="border-left:3px solid var(--accent-green)">
+          <div class="card-icon">🌐</div>
+          <div class="card-title">Customer Portal</div>
+          <div class="card-desc">Plain-English progress. "Action Needed From You" vs "We're Working On It."</div>
+        </div>
+        <div class="card" style="border-left:3px solid var(--accent-blue)">
+          <div class="card-icon">📋</div>
+          <div class="card-title">Account View</div>
+          <div class="card-desc">Single source of truth. Tracks, activity log, WhatsApp nudge, AM handoff.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 5: Ownership Model -->
+  <div class="slide" data-slide="4">
+    <div class="full-content">
+      <p class="section-label">3 — Ownership Model</p>
+      <h2>Split Ownership by Track</h2>
+      <p class="lead">Every track has a single, unambiguous owner. The OM owns the relationship, not the technical execution.</p>
+      <table class="data-table">
+        <thead>
+          <tr><th>Track</th><th>Owner</th><th>The OM's Role</th><th>SLA (Due Day)</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>DNS / Email Setup</td><td><span class="badge badge-amber">Customer</span></td><td>Nudge via WhatsApp. Cannot unblock.</td><td>Day 3</td></tr>
+          <tr><td>Platform Migration</td><td><span class="badge badge-blue">BiteSpeed Specialist</span></td><td>Coordinate handoff of platform access.</td><td>Day 5</td></tr>
+          <tr><td>Campaign Warmup</td><td><span class="badge badge-blue">BiteSpeed Specialist</span></td><td>Confirm plan is shared with customer.</td><td>Day 4</td></tr>
+          <tr><td>Chatbot Config</td><td><span class="badge" style="background:rgba(139,92,246,0.15);color:var(--accent-purple)">External Partner</span></td><td>Neither OM nor customer can accelerate.</td><td>Day 6</td></tr>
+          <tr><td>Relationship & Comms</td><td><span class="badge badge-blue">Onboarding Manager</span></td><td>Owns the customer relationship end-to-end.</td><td>Ongoing</td></tr>
+          <tr><td>Post-Conversion (≥₹50k)</td><td><span class="badge badge-green">Account Manager</span></td><td>Formal handoff via AM Handoff panel.</td><td>Post-Trial</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- SLIDE 6: Priority Algorithm -->
+  <div class="slide" data-slide="5">
+    <div class="full-content">
+      <p class="section-label">4 — The Priority Engine</p>
+      <h2>How P1–P5 Is Computed</h2>
+      <p class="lead">The queue is algorithmically sorted. OMs never ask "who do I work on today?"</p>
+      <div class="cards-grid cols-3" style="margin-bottom:2rem">
+        <div class="card" style="text-align:center">
+          <div class="card-title" style="color:var(--accent-red);font-size:0.7rem;text-transform:uppercase;letter-spacing:0.1em">Component 1</div>
+          <div style="font-size:2rem;font-weight:900;margin:0.5rem 0">30 pts</div>
+          <div class="card-desc"><strong>Risk Profile</strong><br>Red = 30, Amber = 20, Green = 10.<br>Evaluates revenue, orders, trial day, SLA status, plan type.</div>
+        </div>
+        <div class="card" style="text-align:center">
+          <div class="card-title" style="color:var(--accent-amber);font-size:0.7rem;text-transform:uppercase;letter-spacing:0.1em">Component 2</div>
+          <div style="font-size:2rem;font-weight:900;margin:0.5rem 0">20 pts</div>
+          <div class="card-desc"><strong>Escalation Weight</strong><br>Tier 2 = 20, Tier 1 = 10, None = 0.<br>Active blocker tickets on the account.</div>
+        </div>
+        <div class="card" style="text-align:center">
+          <div class="card-title" style="color:var(--accent-green);font-size:0.7rem;text-transform:uppercase;letter-spacing:0.1em">Component 3</div>
+          <div style="font-size:2rem;font-weight:900;margin:0.5rem 0">+5/day</div>
+          <div class="card-desc"><strong>Overdue Multiplier</strong><br>+5 points per day a track is past its SLA deadline. Compounds daily.</div>
+        </div>
+      </div>
+      <table class="data-table" style="max-width:600px;margin:0 auto">
+        <thead><tr><th>Score</th><th>Priority</th><th>Action</th></tr></thead>
+        <tbody>
+          <tr><td>≥ 50</td><td><span class="badge badge-red">P1 Critical</span></td><td>Immediate intervention</td></tr>
+          <tr><td>40–49</td><td><span class="badge badge-amber">P2 High</span></td><td>Same-day follow-up</td></tr>
+          <tr><td>30–39</td><td><span class="badge badge-blue">P3 Medium</span></td><td>Next-day follow-up</td></tr>
+          <tr><td>20–29</td><td><span class="badge badge-green">P4 Low</span></td><td>Monitor</td></tr>
+          <tr><td>< 20</td><td><span class="badge" style="background:rgba(255,255,255,0.05);color:var(--text-tertiary)">P5 Healthy</span></td><td>No action needed</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- SLIDE 7: Escalation Rules -->
+  <div class="slide" data-slide="6">
+    <div class="full-content" style="text-align:center">
+      <p class="section-label">5 — Escalation Rules</p>
+      <h2>Stage-Aware Auto-Escalation</h2>
+      <p class="lead" style="margin-left:auto;margin-right:auto">Communication silence thresholds vary by lifecycle stage. Flat thresholds miss the urgency difference between a 7-day trial and a 6-month AM relationship.</p>
+      <div class="tier-row">
+        <div class="tier-card tier-trial">
+          <div class="tier-number" style="color:var(--accent-amber)">4</div>
+          <div class="tier-unit">Days Silent</div>
+          <div class="tier-label">Trial & Extended</div>
+          <div class="tier-desc">A 4-day gap in a 7-day trial is catastrophic. Almost no recovery time. System auto-generates Tier 2 ticket.</div>
+        </div>
+        <div class="tier-card tier-post">
+          <div class="tier-number" style="color:var(--accent-blue)">7</div>
+          <div class="tier-unit">Days Silent</div>
+          <div class="tier-label">Post-Conversion (OM)</div>
+          <div class="tier-desc">Converted accounts managed by OM. Longer leash but still actively monitored for engagement drops.</div>
+        </div>
+        <div class="tier-card tier-am">
+          <div class="tier-number" style="color:var(--accent-purple)">30</div>
+          <div class="tier-unit">Days Silent</div>
+          <div class="tier-label">Post-Conversion (AM)</div>
+          <div class="tier-desc">Enterprise accounts with dedicated AM. Monthly cadence is normal. Only escalate after a full month of silence.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 8: WhatsApp & Comms -->
+  <div class="slide" data-slide="7">
+    <div class="full-content">
+      <p class="section-label">6 — Communication Cadence</p>
+      <h2>WhatsApp as Delivery Channel, Not System of Record</h2>
+      <p class="lead">The OS drafts context-aware messages and opens WhatsApp natively. Follow-ups become one-click actions.</p>
+      <div class="flow" style="margin-bottom:2rem">
+        <div class="flow-node" style="border-color:var(--accent-blue)">🔍 System detects<br>blocked track</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node" style="border-color:var(--accent-green)">📝 Auto-drafts<br>nudge message</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node" style="border-color:var(--accent-amber)">📱 Opens native<br>WhatsApp app</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node" style="border-color:var(--accent-purple)">✅ OM clicks send<br>in 5 seconds</div>
+      </div>
+      <table class="data-table" style="max-width:900px">
+        <thead><tr><th>Touchpoint</th><th>Trigger</th><th>Channel</th><th>Owner</th></tr></thead>
+        <tbody>
+          <tr><td>Trial Kickoff</td><td>Day 0</td><td>Video Call</td><td><span class="badge badge-blue">OM</span></td></tr>
+          <tr><td>Setup Status Check</td><td>Day 2–3</td><td>WhatsApp Nudge</td><td><span class="badge badge-blue">OM</span></td></tr>
+          <tr><td>DNS/Access Reminder</td><td>Blocked > 2 days</td><td>Auto-drafted Nudge</td><td><span class="badge badge-blue">OM via System</span></td></tr>
+          <tr><td>First Training</td><td>Day 5–6</td><td>Video Call</td><td><span class="badge badge-blue">OM</span></td></tr>
+          <tr><td>Trial Review</td><td>Day 7</td><td>Video Call</td><td><span class="badge badge-blue">OM + Sales</span></td></tr>
+          <tr><td>Silence Alert</td><td>4 days no update</td><td>Internal Escalation</td><td><span class="badge badge-red">System → CS Head</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- SLIDE 9: Scalability -->
+  <div class="slide" data-slide="8">
+    <div class="full-content" style="text-align:center">
+      <p class="section-label">9 — Scalability</p>
+      <h2>What Happens When Volume Doubles</h2>
+      <p class="lead" style="margin-left:auto;margin-right:auto">The OS is designed so that additional accounts add zero marginal administrative overhead.</p>
+      <div class="cards-grid cols-2" style="max-width:800px;margin:0 auto">
+        <div class="card" style="border-top:3px solid var(--accent-red)">
+          <div class="card-title" style="color:var(--accent-red);margin-bottom:0.75rem">❌ Spreadsheet Model (Today)</div>
+          <div class="card-desc" style="line-height:1.8">
+            2× rows to scan every morning<br>
+            2× WhatsApp messages typed manually<br>
+            2× mental filtering to find priority<br>
+            2× weekly review prep time<br>
+            <strong style="color:var(--text-primary)">Overhead scales linearly.</strong>
+          </div>
+        </div>
+        <div class="card" style="border-top:3px solid var(--accent-green)">
+          <div class="card-title" style="color:var(--accent-green);margin-bottom:0.75rem">✅ OS Model (Proposed)</div>
+          <div class="card-desc" style="line-height:1.8">
+            Priority Engine re-sorts automatically<br>
+            WhatsApp Nudge drafts in one click<br>
+            Escalation Engine catches every breach<br>
+            Weekly Review aggregates with zero prep<br>
+            <strong style="color:var(--text-primary)">Only conversations scale. Everything else is flat.</strong>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:2rem;padding:1.25rem 2rem;background:var(--surface);border:1px solid var(--border);border-radius:12px;display:inline-block;max-width:600px">
+        <div style="font-size:0.9rem;font-weight:600;margin-bottom:0.3rem">OM Capacity Guardrail</div>
+        <div style="font-size:0.8rem;color:var(--text-secondary)">Hard cap of <strong style="color:var(--accent-blue)">25 active accounts</strong> per OM, enforced at intake. Risk-weighted: an OM with 15 accounts (3 Red) is flagged as more stressed than an OM with 20 accounts (0 Red).</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 10: Closing -->
+  <div class="slide" data-slide="9">
+    <div class="bg-glow glow-blue"></div>
+    <div class="bg-glow glow-purple"></div>
+    <p class="section-label">Live & Deployed</p>
+    <h1 class="slide-title" style="text-align:center;max-width:700px;font-size:2.5rem">The system is <span class="gradient-text-green">live, interactive, and deployed.</span></h1>
+    <p class="slide-subtitle">Every feature described in these slides is functional and explorable at the links below.</p>
+    <div class="cards-grid cols-2" style="max-width:500px">
+      <div class="card" style="text-align:center;cursor:pointer" onclick="window.open('https://bitespeed-os.vercel.app','_blank')">
+        <div class="card-icon">🌐</div>
+        <div class="card-title" style="color:var(--accent-blue)">Live Demo</div>
+        <div class="card-desc">bitespeed-os.vercel.app</div>
+      </div>
+      <div class="card" style="text-align:center;cursor:pointer" onclick="window.open('https://github.com/khadyot/bitespeed-os','_blank')">
+        <div class="card-icon">📦</div>
+        <div class="card-title" style="color:var(--accent-green)">Source Code</div>
+        <div class="card-desc">github.com/khadyot/bitespeed-os</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Navigation -->
+<div class="nav" id="nav"></div>
+<div class="slide-counter" id="counter">1 / 10</div>
+<div class="key-hint">← → Arrow Keys or Click</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const nav = document.getElementById('nav');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  // Build nav dots
+  slides.forEach((_, i) => {
+    const dot = document.createElement('div');
+    dot.className = 'nav-dot' + (i === 0 ? ' active' : '');
+    dot.onclick = () => goTo(i);
+    nav.appendChild(dot);
+  });
+
+  function goTo(index) {
+    if (index < 0 || index >= slides.length || index === current) return;
+    slides[current].classList.remove('active');
+    slides[current].classList.add('exiting');
+    setTimeout(() => slides[current === index ? current : (current > index ? current : current)].classList.remove('exiting'), 500);
+    
+    const prev = current;
+    current = index;
+    
+    setTimeout(() => {
+      slides[prev].classList.remove('exiting');
+    }, 500);
+    
+    slides[current].classList.add('active');
+    
+    // Update dots
+    document.querySelectorAll('.nav-dot').forEach((d, i) => {
+      d.classList.toggle('active', i === current);
+    });
+    
+    counter.textContent = `${current + 1} / ${slides.length}`;
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); goTo(current + 1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); goTo(current - 1); }
+  });
+
+  // Click on left/right halves
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('.nav') || e.target.closest('.card[onclick]') || e.target.closest('a')) return;
+    if (e.clientX > window.innerWidth * 0.6) goTo(current + 1);
+    else if (e.clientX < window.innerWidth * 0.4) goTo(current - 1);
+  });
+</script>
+
+</body>
+</html>

@@ -10,7 +10,7 @@ export default async function IntakeForm() {
 
   // Calculate recommendation
   const omStats = oms.map(om => {
-    const activeAccounts = om.accountsAsOM.filter(a => !['Converted', 'Lost', 'Stalled'].includes(a.conversion_status));
+    const activeAccounts = om.accountsAsOM.filter(a => !['Lost', 'Stalled'].includes(a.conversion_status) && a.account_manager_id === null);
     
     let redRiskCount = 0;
     activeAccounts.forEach(acc => {
@@ -27,10 +27,11 @@ export default async function IntakeForm() {
     };
   });
 
-  // Sort by red risks ascending, then by active count ascending
+  // Sort by weighted load score
   omStats.sort((a, b) => {
-    if (a.redRiskCount !== b.redRiskCount) return a.redRiskCount - b.redRiskCount;
-    return a.activeCount - b.activeCount;
+    const effectiveLoadA = a.activeCount + (a.redRiskCount * 5);
+    const effectiveLoadB = b.activeCount + (b.redRiskCount * 5);
+    return effectiveLoadA - effectiveLoadB;
   });
 
   const recommendedOm = omStats[0];

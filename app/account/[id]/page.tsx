@@ -63,7 +63,7 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
   let nudgeMessage = `Hi ${account.brand_name} team,\n\nChecking in on your BiteSpeed onboarding. `;
   if (nextMilestone && nextMilestone.owner_type === 'Customer') {
     nudgeMessage += `It looks like we are waiting on you to complete the ${nextMilestone.type} step. Please let us know if you need any help!\n\n`;
-  } else if (daysSinceUpdate !== null && daysSinceUpdate >= 3) {
+  } else if (daysSinceUpdate !== null && softFlag) {
     nudgeMessage += `We haven't heard from you in a few days. Is everything going smoothly?\n\n`;
   } else {
     nudgeMessage += `Just keeping you in the loop that things are progressing well on our end.\n\n`;
@@ -219,10 +219,10 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
           </div>
 
           {/* AM Handoff Panel */}
-          {account.conversion_status === 'Converted' && account.revenue_generated_during_trial_inr >= 50000 && !account.account_manager_id && (
+          {account.conversion_status === 'Converted' && account.initial_plan_value_inr >= 21000 && !account.account_manager_id && (
             <div className="card" style={{ marginBottom: '1.5rem', borderLeft: '4px solid var(--accent-secondary)', background: 'rgba(139, 92, 246, 0.05)' }}>
-              <h3 style={{ marginBottom: '0.75rem', fontSize: '1rem', color: 'var(--accent-secondary)' }}>🤝 Formal AM Handoff Ready <span style={{fontSize: '0.75rem', fontWeight: 'normal', color: 'var(--text-tertiary)', fontStyle: 'italic'}}>(₹50k Placeholder pending confirmation)</span></h3>
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-primary)', marginBottom: '1rem' }}>This account has converted and reached the provisional ₹50,000 threshold. It is ready for formal handoff to an Account Manager.</p>
+              <h3 style={{ marginBottom: '0.75rem', fontSize: '1rem', color: 'var(--accent-secondary)' }}>🤝 Formal AM Handoff Ready <span style={{fontSize: '0.75rem', fontWeight: 'normal', color: 'var(--text-tertiary)', fontStyle: 'italic'}}>(₹21k Provisional Threshold)</span></h3>
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-primary)', marginBottom: '1rem' }}>This account has converted and reached the provisional ₹21,000 threshold. It is ready for formal handoff to an Account Manager.</p>
               <form action={async (formData) => {
                 'use server';
                 const amId = formData.get('am_id') as string;

@@ -68,7 +68,7 @@ export default async function SpecialistDashboard() {
     });
   });
 
-  allTracks.sort((a, b) => b.priorityScore - a.priorityScore || a.daysSinceTrackUpdate - b.daysSinceTrackUpdate);
+  allTracks.sort((a, b) => b.priorityScore - a.priorityScore || b.daysSinceTrackUpdate - a.daysSinceTrackUpdate);
 
   const myTracks = allTracks.filter(t => t.isMine);
   const watchTracks = allTracks.filter(t => !t.isMine);

@@ -1,4 +1,4 @@
-export const AM_THRESHOLD = 50000;
+export const AM_THRESHOLD = 21000;
 
 export function getTrialDay(trialStart: Date): number {
   const start = new Date(trialStart).getTime();
@@ -54,7 +54,10 @@ export function computeSlaStatus(tracks: any[], trialStart: Date): { status: 'On
         riskTrack = t;
       }
     } else if (t.owner_type === 'Partner') {
-      if (day >= 4 && t.status !== 'complete') {
+      if (day >= 7 && t.status !== 'complete') {
+        worst = 'Breached';
+        breachedTrack = t;
+      } else if (day >= 4 && t.status !== 'complete' && worst !== 'Breached') {
         worst = 'At Risk'; 
         riskTrack = t;
       }
